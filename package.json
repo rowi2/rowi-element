@@ -1,6 +1,6 @@
 {
     "name": "@rowi/rowi-element",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "A Web Component base class to handle synchronization between properties and attributes",
     "main": "rowi-element.js",
     "type": "module",

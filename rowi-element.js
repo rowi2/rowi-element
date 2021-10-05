@@ -13,7 +13,7 @@ export default class RowiElement extends HTMLElement {
                 this.__attrs__[attr] = {name: key, prop}
                 if (prop.handler != null) {
                     this.addEventListener('$' + key, ev => {
-                        prop.handler.apply(this, ev.detail)
+                        prop.handler.apply(this, [ev.detail])
                     })
                 }
                 if (this.hasOwnProperty(key))
