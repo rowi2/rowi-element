@@ -18,11 +18,14 @@ export default class RowiElement extends HTMLElement {
                 }
                 if (this.hasOwnProperty(key))
                     this.__initialValues__[key] = this[key]
+                else if (prop.type === 'boolean' && this.getAttribute(attr) == null && prop.default) {
+                    this.__initialValues__[key] = true
+                }
                 accum[key] = {
                     get: () => {
                         this.__setInitialValues__()
                         let v = this.getAttribute(attr)
-                        return (v == null || v === "") && prop.type != 'boolean'
+                        return (v == null || v === "") && prop.type !== 'boolean'
                             ? prop.default : this.__attrToProp__(v, prop.type)
                     },
                     set: (v) => {
@@ -87,12 +90,12 @@ export default class RowiElement extends HTMLElement {
 
         if (oldValue !== newValue) {
             if (propName == null) return
+            let propValue = this.__attrToProp__(newValue, prop.type)
             if (prop.type != 'boolean') {
-                let propValue = this.__attrToProp__(newValue, prop.type)
                 try {
                     this.__checkType__(propName, propValue, prop.type)
                     if (prop.validator) {
-                        const valid = prop.validator.apply(this, [newValue])
+                        const valid = prop.validator.apply(this, [propValue])
                         if (!valid)
                             throw `Prop "${name}" value ${value} is not valid`
                     }
@@ -104,8 +107,9 @@ export default class RowiElement extends HTMLElement {
                 }
             }
 
+            const oldPropValue = this.__attrToProp__(oldValue, prop.type)
             this.dispatchEvent(new CustomEvent('$' + propName,
-                {detail: {oldValue, newValue}}
+                {detail: {oldValue: oldPropValue, newValue: propValue}}
             ))
         }
     }
