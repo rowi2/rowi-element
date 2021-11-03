@@ -37,7 +37,7 @@ class MyComponent extends RowiElement {
         default: 'hello world',
         attr: 'data-str-prop',
         handler() {
-          this.__refs__.thing.innerText = this.strProp
+          this.$.thing.innerText = this.strProp
         }
       }
     }
@@ -50,7 +50,7 @@ class MyComponent extends RowiElement {
       ['div', {name: 'thing'}],
       ['input', {on: {input: ev => this.strProp = ev.target.value}}]  
     ])
-    console.log(this.__refs__) 
+    console.log(this.$) 
   }
 }
 

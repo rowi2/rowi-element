@@ -1,36 +1,39 @@
 export default class RowiElement extends HTMLElement {
+    #attrs
+    #initialValues
+    #initialValuesStarted
+    #handlers
     constructor() {
         super()
-        this.__attrs__ = {}
-        this.__refs__ = {}
-        this.__initialValues__ = {}
-        this.__initialValuesStarted__ = false
+        this.#attrs = {}
+        this.$ = {}
+        this.#initialValues = {}
+        this.#initialValuesStarted = false
+        this.#handlers = {}
 
         let props = this.props || {}
         Object.defineProperties(this, Object.entries(props).reduce(
             (accum, [key, prop]) => {
-                let attr = prop.attr || this.__getDefaulAttr__(key)
-                this.__attrs__[attr] = {name: key, prop}
+                let attr = prop.attr || this.#getDefaulAttr(key)
+                this.#attrs[attr] = {name: key, prop}
                 if (prop.handler != null) {
-                    this.addEventListener('$' + key, ev => {
-                        prop.handler.apply(this, [ev.detail])
-                    })
+                    this.#handlers[key] = ev => prop.handler.apply(this, [ev.detail])
+                    this.addEventListener('$' + key, this.#handlers[key])
                 }
                 if (this.hasOwnProperty(key))
-                    this.__initialValues__[key] = this[key]
+                    this.#initialValues[key] = this[key]
                 else if (prop.type === 'boolean' && this.getAttribute(attr) == null && prop.default) {
-                    this.__initialValues__[key] = true
+                    this.#initialValues[key] = true
                 }
                 accum[key] = {
                     get: () => {
-                        this.__setInitialValues__()
+                        this.#setInitialValues()
                         let v = this.getAttribute(attr)
                         return (v == null || v === "") && prop.type !== 'boolean'
-                            ? prop.default : this.__attrToProp__(v, prop.type)
+                            ? prop.default : this.#attrToProp(v, prop.type)
                     },
                     set: (v) => {
-                        this.__setInitialValues__(key)
-                        this.__checkType__(key, v, prop.type)
+                        this.#setInitialValues(key)
                         if (prop.type === 'boolean') {
                             if (v) this.setAttribute(attr, '')
                             else this.removeAttribute(attr)
@@ -44,56 +47,61 @@ export default class RowiElement extends HTMLElement {
         ))
     }
 
-    __setInitialValues__(propSetting) {
-        if (this.__initialValuesStarted__) return
-        this.__initialValuesStarted__ = true
-        for (let key in this.__initialValues__) {
+    #setInitialValues(propSetting) {
+        if (this.#initialValuesStarted) return
+        this.#initialValuesStarted = true
+        for (let key in this.#initialValues) {
             if (key === propSetting) continue
-            this[key] = this.__initialValues__[key]
+            this[key] = this.#initialValues[key]
         }
     }
 
-    __getDefaulAttr__(prop) {
+    #getDefaulAttr(prop) {
         return 'data-' + prop.replaceAll(/[A-Z]/g, l => `-${l.toLowerCase()}`)
     }
 
-    __checkType__(name, value, type) {
-        if (
-            (type == 'integer' && !Number.isInteger(value))
+    $checkType(value, type) {
+        return (
+            (type == 'integer' && Number.isInteger(value))
             || (
-                ['string', 'boolean', 'number'].includes(type)
-                && !(typeof value === type)
+                ['string', 'boolean', 'number', 'object'].includes(type)
+                && typeof value === type
             )
-        ) {
+            || (type == 'array' && Array.isArray(value))
+        )
+    }
+
+    #checkType(name, value, type) {
+        if (!this.$checkType(value, type))
             throw new TypeError(
                 `Type of "${name}" is ${type}. Value given: ${value}`
             )
-        }
     }
 
-    __attrToProp__(value, type) {
+
+    #attrToProp(value, type) {
         if (type === 'number' || type === 'integer') return Number(value)
         else if (type === 'boolean') return value != null
         else return value
     }
 
-    connectedCallback() { this.__setInitialValues__() }
+    connectedCallback() { this.#setInitialValues() }
 
     attributeChangedCallback(name, oldValue, newValue) {
-        let attrElement = this.__attrs__[name]
+        let attrElement = this.#attrs[name]
         let propName = attrElement.name, prop = attrElement.prop
 
-        let initialValuesStarted = this.__initialValuesStarted__
-        this.__setInitialValues__()
-        if (!initialValuesStarted && propName in this.__initialValues__)
+        let initialValuesStarted = this.#initialValuesStarted
+        this.#setInitialValues()
+        if (!initialValuesStarted && propName in this.#initialValues)
             return
 
         if (oldValue !== newValue) {
             if (propName == null) return
-            let propValue = this.__attrToProp__(newValue, prop.type)
+            let propValue = this.#attrToProp(newValue, prop.type)
             if (prop.type != 'boolean') {
                 try {
-                    this.__checkType__(propName, propValue, prop.type)
+                    this.#checkType(propName, propValue, prop.type)
                     if (prop.validator) {
                         const valid = prop.validator.apply(this, [propValue])
                         if (!valid)
@@ -107,20 +115,28 @@ export default class RowiElement extends HTMLElement {
                 }
             }
 
-            const oldPropValue = this.__attrToProp__(oldValue, prop.type)
+            const oldPropValue = this.#attrToProp(oldValue, prop.type)
             this.dispatchEvent(new CustomEvent('$' + propName,
                 {detail: {oldValue: oldPropValue, newValue: propValue}}
             ))
         }
     }
+
+    $set(propName, value, safe = true) {
+        if (safe && this.#handlers[propName] != null) 
+            this.removeEventListener('$' + key, this.#handlers[propName])
+        this[propName] = value
+        if (safe && this.#handlers[propName] != null)
+            this.addEventListener('$' + key, this.#handlers[propName])
+    }
     
-    __createElement__(tag, opts, children) {
+    #createElementHelper(tag, opts, children) {
         const {id, on, attrs, name, props} = opts
         const elem_ = typeof tag === 'string' ? document.createElement(tag) : tag
 
         if (opts.class != null) elem_.className = opts.class
         if (id != null) elem_.id = id
-        if (name != null ) this.__refs__[name] = elem_
+        if (name != null ) this.$[name] = elem_
 
         for (const event in on || {}) {
             elem_.addEventListener(event, on[event])
@@ -162,6 +178,6 @@ export default class RowiElement extends HTMLElement {
             opts = elem[1]
             children = children.slice(1)
         }
-        return this.__createElement__(tag, opts, children)
+        return this.#createElementHelper(tag, opts, children)
     }    
 }
