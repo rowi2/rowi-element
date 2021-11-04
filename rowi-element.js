@@ -1,16 +1,15 @@
 export default class RowiElement extends HTMLElement {
-    #attrs
-    #initialValues
-    #initialValuesStarted
-    #handlers
+    #attrs = {}
+    #initialValues = {}
+    #initialValuesStarted = false
+    #handlers = {}
+    #allowedTypes = new Set(['number', 'integer', 'string', 'boolean'])
+
+    #refs = {}
+    get $() { return this.#refs }
+
     constructor() {
         super()
-        this.#attrs = {}
-        this.$ = {}
-        this.#initialValues = {}
-        this.#initialValuesStarted = false
-        this.#handlers = {}
-
         let props = this.props || {}
         Object.defineProperties(this, Object.entries(props).reduce(
             (accum, [key, prop]) => {
@@ -72,6 +71,11 @@ export default class RowiElement extends HTMLElement {
     }
 
     #checkType(name, value, type) {
+        if (!this.#allowedTypes.has(type)) {
+            throw new TypeError(
+                `Allowed types are "${this.#allowedTypes}". Type given: ${type}`
+            )
+        }
         if (!this.$checkType(value, type))
             throw new TypeError(
                 `Type of "${name}" is ${type}. Value given: ${value}`
@@ -109,7 +113,7 @@ export default class RowiElement extends HTMLElement {
                     }
                 } catch (error) {
                     console.error(error)
-                    if (oldValue == null) this.removeAttribute(attrName) 
+                    if (oldValue == null) this.removeAttribute(attrName)
                     else this.setAttribute(attrName, oldValue)
                     return
                 }
@@ -123,20 +127,20 @@ export default class RowiElement extends HTMLElement {
     }
 
     $set(propName, value, safe = true) {
-        if (safe && this.#handlers[propName] != null) 
+        if (safe && this.#handlers[propName] != null)
             this.removeEventListener('$' + key, this.#handlers[propName])
         this[propName] = value
         if (safe && this.#handlers[propName] != null)
             this.addEventListener('$' + key, this.#handlers[propName])
     }
-    
-    #createElementHelper(tag, opts, children) {
+
+    #createElementHelper(tag, opts, children, refs) {
         const {id, on, attrs, name, props} = opts
         const elem_ = typeof tag === 'string' ? document.createElement(tag) : tag
 
         if (opts.class != null) elem_.className = opts.class
         if (id != null) elem_.id = id
-        if (name != null ) this.$[name] = elem_
+        if (name != null ) refs[name] = elem_
 
         for (const event in on || {}) {
             elem_.addEventListener(event, on[event])
@@ -147,7 +151,7 @@ export default class RowiElement extends HTMLElement {
             if (typeof child  === 'string')
                 elem_.appendChild(document.createTextNode(child))
             else if (Array.isArray(child)) {
-                elem_.appendChild(this.createElement(child))
+                elem_.appendChild(this.$createElement(child, refs))
             }
         }
 
@@ -160,7 +164,8 @@ export default class RowiElement extends HTMLElement {
         return elem_
     }
 
-    createElement(elem) {
+    $createElement(elem, refs) {
+        refs = refs || {}
         let tag = 'div'
         let opts = {}
         let children = elem
@@ -178,6 +183,11 @@ export default class RowiElement extends HTMLElement {
             opts = elem[1]
             children = children.slice(1)
         }
-        return this.#createElementHelper(tag, opts, children)
-    }    
+        return this.#createElementHelper(tag, opts, children, refs)
+    }
+
+    $buildShadow(content) {
+        this.attachShadow({mode: 'open'})
+        this.$createElement([this.shadowRoot, ...content], this.#refs)
+    }
 }

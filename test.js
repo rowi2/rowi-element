@@ -44,9 +44,8 @@ class MyComponent extends RowiElement {
   }
 
   constructor () { 
-    super();
-    this.attachShadow({mode: 'open'})
-    this.createElement([this.shadowRoot,
+    super()
+    this.$buildShadow([
       ['div', {name: 'thing'}],
       ['input', {on: {input: ev => this.strProp = ev.target.value}}]  
     ])
