@@ -126,12 +126,13 @@ export default class RowiElement extends HTMLElement {
         }
     }
 
-    $set(propName, value, safe = true) {
-        if (safe && this.#handlers[propName] != null)
-            this.removeEventListener('$' + key, this.#handlers[propName])
+    $set(propName, value, preventEvent = true) {
+        const handler = this.#handlers[propName]
+        if (preventEvent && handler != null)
+            this.removeEventListener('$' + key, handler)
         this[propName] = value
-        if (safe && this.#handlers[propName] != null)
-            this.addEventListener('$' + key, this.#handlers[propName])
+        if (preventEvent && handler != null)
+            setTimeout(() => this.addEventListener('$' + key, handler))
     }
 
     #createElementHelper(tag, opts, children, refs) {
