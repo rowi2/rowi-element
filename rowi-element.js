@@ -5,11 +5,9 @@ export default class RowiElement extends HTMLElement {
     #handlers = {}
     #allowedTypes = new Set(['number', 'integer', 'string', 'boolean'])
 
-    #refs = {}
-    get $() { return this.#refs }
-
     constructor() {
         super()
+        this.$ = {}
         let props = this.props || {}
         Object.defineProperties(this, Object.entries(props).reduce(
             (accum, [key, prop]) => {
@@ -81,7 +79,6 @@ export default class RowiElement extends HTMLElement {
                 `Type of "${name}" is ${type}. Value given: ${value}`
             )
     }
-
 
     #attrToProp(value, type) {
         if (type === 'number' || type === 'integer') return Number(value)
@@ -169,26 +166,25 @@ export default class RowiElement extends HTMLElement {
         refs = refs || {}
         let tag = 'div'
         let opts = {}
-        let children = elem
         if (
             elem[0] instanceof Element || elem[0] instanceof DocumentFragment
             || typeof elem[0] === 'string'
         ) {
             tag = elem[0]
-            children = children.slice(1)
+            elem = elem.slice(1)
         }
         if (
-            typeof elem[1] === 'object' && elem[1] != null
-            && !Array.isArray(elem[1])
+            typeof elem[0] === 'object' && elem[0] != null
+            && !Array.isArray(elem[0])
         ) {
-            opts = elem[1]
-            children = children.slice(1)
+            opts = elem[0]
+            elem = elem.slice(1)
         }
-        return this.#createElementHelper(tag, opts, children, refs)
+        return this.#createElementHelper(tag, opts, elem, refs)
     }
 
-    $buildShadow(content) {
-        this.attachShadow({mode: 'open'})
-        this.$createElement([this.shadowRoot, ...content], this.#refs)
+    $buildShadow(content, mode='open') {
+        this.attachShadow({mode})
+        this.$createElement([this.shadowRoot, ...content], this.$)
     }
 }
