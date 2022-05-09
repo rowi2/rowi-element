@@ -110,3 +110,5 @@ There are also some helper functions:
   The rest of the elements in the array are the children of the element, and they can be a string (for TextNodes) or an array like the one we describe here.
 
 - `$buildShadow(content)`: This creates the shadow root element and calls `$createElement` passing the shadow root element as the parent, and saving the references of the named elements inside `content` in the property `this.$`.
+
+Elements inheriting from this class emit events every time a prop is changed, and this events are named like this: `$<PROP_NAME>`.

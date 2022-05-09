@@ -1,8 +1,12 @@
 {
     "name": "@rowi/rowi-element",
-    "version": "0.2.2",
+    "version": "0.2.5",
     "description": "A Web Component base class to handle synchronization between properties and attributes",
-    "main": "rowi-element.js",
+    "main": "dist/rowi-element.js",
+    "types": "dist/rowi-element.d.ts",
+    "files": [
+      "/dist"
+    ],
     "type": "module",
     "scripts": {
       "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,4 +1,4 @@
-import RowiElement from "./rowi-element.js";
+import RowiElement from "./dist/rowi-element.js";
 
 class MyComponent extends RowiElement {
   static get observedAttributes () {
